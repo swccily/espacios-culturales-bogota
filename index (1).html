@@ -1,0 +1,1334 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Espacios Culturales y Muros - Bogota</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Montserrat:wght@600;700;800&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    :root {
+      --bg: #FAFAFC;
+      --surface: #FFFFFF;
+      --surface-soft: #F3F4F6;
+      --ink: #1A1429;
+      --muted: #5B5370;
+      --border: #E5E7EB;
+      --brand: #7C3AED;
+      --brand-dark: #5B21B6;
+      --brand-soft: #EDE9FE;
+      --ok: #10B981;
+      --busy: #D1D5DB;
+
+      /* Colores por disciplina */
+      --col-grafiti: #EC4899;
+      --col-baile: #F97316;
+      --col-musica: #06B6D4;
+      --col-lectura: #10B981;
+      --col-artes_escenicas: #EAB308;
+      --col-colectivos: #4F46E5;
+      --col-default: #7C3AED;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+    }
+
+    h1, h2, h3, .brand-title, .cat-pill, .badge-cat {
+      font-family: 'Poppins', 'Montserrat', sans-serif;
+    }
+
+    /* 1. Barra Superior Fija */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 1100;
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 20px;
+    }
+
+    .topbar-row {
+      max-width: 1540px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--ink);
+    }
+
+    .brand-logo {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+      display: grid;
+      place-items: center;
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(124, 58, 237, 0.25);
+    }
+
+    .brand-title {
+      font-weight: 700;
+      font-size: 0.98rem;
+      line-height: 1.15;
+    }
+
+    .brand-sub {
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+
+    .search-box {
+      flex: 1;
+      max-width: 520px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface-soft);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 14px;
+    }
+
+    .search-box input {
+      border: none;
+      background: transparent;
+      width: 100%;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.85rem;
+      color: var(--ink);
+    }
+
+    .search-box input:focus { outline: none; }
+
+    .header-btns {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn {
+      font-family: 'Poppins', sans-serif;
+      font-weight: 600;
+      font-size: 0.78rem;
+      border-radius: 10px;
+      padding: 8px 13px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-primary {
+      background: var(--brand);
+      color: #fff;
+    }
+    .btn-primary:hover { background: var(--brand-dark); }
+
+    .btn-soft {
+      background: var(--brand-soft);
+      color: var(--brand-dark);
+      border-color: #DDD6FE;
+    }
+    .btn-soft:hover { background: #DDD6FE; }
+
+    .btn-outline {
+      background: #fff;
+      color: var(--ink);
+      border-color: var(--border);
+    }
+    .btn-outline:hover { background: var(--surface-soft); }
+
+    /* 2. Panel de Filtros Horizontales */
+    .filter-strip {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 20px;
+      position: sticky;
+      top: 59px;
+      z-index: 1000;
+    }
+
+    .filter-inner {
+      max-width: 1540px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .filter-top-line {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .filter-select {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--ink);
+    }
+
+    .chips-scroll {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      overflow-x: auto;
+      padding-bottom: 3px;
+    }
+
+    .cat-pill {
+      --c: var(--brand);
+      background: #fff;
+      color: var(--ink);
+      border: 1.5px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      white-space: nowrap;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .cat-pill:hover {
+      border-color: var(--c);
+      background: #FAF8FF;
+    }
+
+    .cat-pill.active {
+      background: var(--c);
+      border-color: var(--c);
+      color: #fff;
+    }
+
+    .cat-pill.active svg { color: #fff; }
+
+    /* Barra de comparación activa */
+    .compare-bar {
+      max-width: 1540px;
+      margin: 12px auto 0;
+      padding: 0 20px;
+      display: none;
+    }
+
+    .compare-bar.visible { display: block; }
+
+    .compare-card {
+      background: var(--brand-soft);
+      border: 1px solid #C4B5FD;
+      border-radius: 14px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-size: 0.8rem;
+    }
+
+    .compare-chips {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .compare-tag {
+      background: #fff;
+      color: var(--brand-dark);
+      border: 1px solid #C4B5FD;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+
+    /* 3. Cuerpo Principal Dividido 50/50 */
+    .split-layout {
+      max-width: 1540px;
+      margin: 14px auto 28px;
+      padding: 0 20px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .mobile-tabs {
+      display: none;
+      padding: 10px 20px 0;
+      gap: 8px;
+    }
+
+    .results-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .cards-2col {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    /* Trama sutil de serigrafia para banner/estado vacio */
+    .serigrafia-bg {
+      background-image: radial-gradient(rgba(124, 58, 237, 0.14) 1px, transparent 1px);
+      background-size: 10px 10px;
+    }
+
+    .space-item {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+
+    .space-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 22px rgba(26, 20, 41, 0.08);
+    }
+
+    .space-item.selected-compare {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.22);
+    }
+
+    .card-cover {
+      height: 54px;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+    }
+
+    .badge-cat {
+      font-size: 0.69rem;
+      font-weight: 700;
+      color: #fff;
+      padding: 3px 9px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .loc-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--brand-dark);
+      background: var(--brand-soft);
+      padding: 2px 8px;
+      border-radius: 999px;
+    }
+
+    .card-content {
+      padding: 12px;
+    }
+
+    .card-content h3 {
+      margin: 0 0 4px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+
+    .card-sub {
+      font-size: 0.74rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .card-specs {
+      font-size: 0.74rem;
+      color: #374151;
+      line-height: 1.35;
+      margin-bottom: 6px;
+    }
+
+    .access-chips {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+
+    .mini-chip {
+      font-size: 0.67rem;
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: var(--surface-soft);
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .card-actions {
+      padding: 0 12px 12px;
+      display: flex;
+      gap: 6px;
+    }
+
+    .card-actions .btn {
+      flex: 1;
+      justify-content: center;
+      padding: 7px 8px;
+      font-size: 0.74rem;
+    }
+
+    .map-panel {
+      position: sticky;
+      top: 118px;
+      height: calc(100vh - 142px);
+      min-height: 460px;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1.5px solid var(--border);
+      background: #EDE9FE;
+      box-shadow: 0 8px 24px rgba(26, 20, 41, 0.07);
+    }
+
+    #map { width: 100%; height: 100%; }
+
+    /* Modal / Drawer */
+    .modal-bg {
+      position: fixed;
+      inset: 0;
+      background: rgba(26, 20, 41, 0.55);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 2200;
+    }
+
+    .modal-bg.open { display: flex; }
+
+    .modal-box {
+      background: #fff;
+      border-radius: 18px;
+      width: 100%;
+      max-width: 660px;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 20px;
+      border: 1px solid var(--border);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
+    }
+
+    .modal-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+      margin-bottom: 14px;
+    }
+
+    .modal-top h2 {
+      margin: 0;
+      font-size: 1.05rem;
+    }
+
+    .info-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 14px;
+      font-size: 0.8rem;
+    }
+
+    .week-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+      margin-top: 8px;
+      text-align: center;
+      font-size: 0.69rem;
+    }
+
+    .slot-free {
+      background: #D1FAE5;
+      color: #065F46;
+      padding: 6px 3px;
+      border-radius: 7px;
+      font-weight: 600;
+    }
+
+    .slot-busy {
+      background: #E5E7EB;
+      color: #4B5563;
+      padding: 6px 3px;
+      border-radius: 7px;
+    }
+
+    .form-grid {
+      display: grid;
+      gap: 11px;
+    }
+
+    .two-cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 0.74rem;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .field input, .field select, .field textarea {
+      width: 100%;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.82rem;
+      padding: 8px 10px;
+      border-radius: 9px;
+      border: 1px solid var(--border);
+      color: var(--ink);
+      background: #fff;
+    }
+
+    .checks-box {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+      background: var(--bg);
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+
+    .checks-box label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.76rem;
+      margin: 0;
+      cursor: pointer;
+    }
+
+    .checks-box input { width: auto; }
+
+    @media (max-width: 980px) {
+      .split-layout {
+        grid-template-columns: 1fr;
+      }
+      .map-panel {
+        position: relative;
+        top: 0;
+        height: 420px;
+      }
+      .mobile-tabs { display: flex; }
+      .mobile-hidden { display: none !important; }
+    }
+
+    @media (max-width: 600px) {
+      .cards-2col { grid-template-columns: 1fr; }
+      .two-cols { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <!-- 1. Barra Superior Fija -->
+  <header class="topbar">
+    <div class="topbar-row">
+      <a href="#" class="brand" id="btnHome">
+        <div class="brand-logo" aria-hidden="true">
+          <!-- Isotipo principal -->
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2L4 7v10l8 5 8-5V7l-8-5z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+        </div>
+        <div>
+          <div class="brand-title">Bogota Cultural</div>
+          <div class="brand-sub">Espacios y muros para artistas y colectivos</div>
+        </div>
+      </a>
+
+      <div class="search-box">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5B5370" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="m21 21-4.3-4.3"></path>
+        </svg>
+        <input type="text" id="inputBuscar" placeholder="Buscar espacio (CREA, BibloRed, La Colmena), palabra clave o direccion..." />
+      </div>
+
+      <div class="header-btns">
+        <button type="button" class="btn btn-outline" id="btnRegistrarEspacio">+ Registrar espacio</button>
+        <button type="button" class="btn btn-soft" id="btnMisReservas">Mis reservas (<span id="badgeReservas">0</span>)</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 2. Panel de Filtros Horizontales -->
+  <section class="filter-strip" aria-label="Filtros de espacios">
+    <div class="filter-inner">
+      <div class="filter-top-line">
+        <select id="selectLocalidad" class="filter-select" aria-label="Localidad">
+          <option value="">Todas las localidades</option>
+        </select>
+
+        <select id="selectAcceso" class="filter-select" aria-label="Disponibilidad y acceso">
+          <option value="">Todo tipo de acceso</option>
+          <option value="gratuito">Gratuito</option>
+          <option value="reserva">Con reserva previa</option>
+          <option value="equipado">Equipado (espejos, sonido, muros)</option>
+        </select>
+
+        <button type="button" class="btn btn-outline" id="btnResetFiltros" style="padding:5px 11px;font-size:0.74rem;">
+          Limpiar filtros
+        </button>
+      </div>
+
+      <div class="chips-scroll" id="barraDisciplinas"></div>
+    </div>
+  </section>
+
+  <!-- Barra de Espacios Seleccionados para Comparar -->
+  <div class="compare-bar" id="barraComparar">
+    <div class="compare-card">
+      <div>
+        <strong style="color:var(--brand-dark);">Espacios seleccionados para comparar (max. 3):</strong>
+        <span style="color:var(--muted);font-size:0.74rem;">Resaltados en el mapa con halo morado</span>
+      </div>
+      <div class="compare-chips" id="chipsComparar"></div>
+    </div>
+  </div>
+
+  <!-- Pestañas en móvil -->
+  <div class="mobile-tabs">
+    <button type="button" class="btn btn-primary" id="tabListaMovil" style="flex:1;justify-content:center;">Lista de espacios</button>
+    <button type="button" class="btn btn-outline" id="tabMapaMovil" style="flex:1;justify-content:center;">Mapa de Bogota</button>
+  </div>
+
+  <!-- 3. Cuerpo Principal Dividido 50/50 -->
+  <main class="split-layout">
+    <section id="columnaLista">
+      <div class="results-meta">
+        <span id="textoConteo">Cargando espacios...</span>
+        <span id="textoEstado">EPSG:4326</span>
+      </div>
+      <div class="cards-2col" id="gridTarjetas"></div>
+    </section>
+
+    <aside id="columnaMapa">
+      <div class="map-panel">
+        <div id="map"></div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Modal Detalle + Reserva -->
+  <div class="modal-bg" id="modalEspacio">
+    <div class="modal-box">
+      <div class="modal-top">
+        <h2 id="modalTituloEspacio">Detalle y reserva</h2>
+        <button type="button" class="btn btn-outline" id="cerrarModalEspacio">Cerrar</button>
+      </div>
+
+      <!-- Bloque A: Informacion practica -->
+      <div class="info-box" id="bloqueInfoPractica"></div>
+
+      <!-- Bloque B: Formulario de Reserva -->
+      <form id="formReserva" class="form-grid">
+        <input type="hidden" id="resIdEspacio" />
+        <input type="hidden" id="resNombreEspacio" />
+        <input type="hidden" id="resLocalidadEspacio" />
+
+        <div class="two-cols">
+          <div class="field">
+            <label for="resSolicitante">Nombre del Artista, Colectivo o Agrupacion *</label>
+            <input type="text" id="resSolicitante" required placeholder="Ej. Colectivo Sur / Valeria Rojas" />
+          </div>
+          <div class="field">
+            <label for="resPerfil">Tipo de perfil *</label>
+            <select id="resPerfil" required>
+              <option value="Artista individual">Artista individual</option>
+              <option value="Colectivo">Colectivo</option>
+              <option value="Escuela comunitaria">Escuela comunitaria</option>
+              <option value="Organizacion cultural">Organizacion cultural</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Campo o Disciplina Principal *</label>
+          <div class="checks-box" id="resDisciplinasChecks">
+            <label><input type="checkbox" value="grafiti" /> Graffiti y Muralismo</label>
+            <label><input type="checkbox" value="baile" /> Danza</label>
+            <label><input type="checkbox" value="musica" /> Musica</label>
+            <label><input type="checkbox" value="artes_escenicas" /> Teatro / Escenicas</label>
+            <label><input type="checkbox" value="lectura" /> Lectura / Literatura</label>
+            <label><input type="checkbox" value="colectivos" /> Audiovisual / Colectivo</label>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="resDescripcion">Descripcion breve de la actividad (max. 200 caracteres) *</label>
+          <input type="text" id="resDescripcion" maxlength="200" required placeholder="Ej. Ensayo montaje danza contemporanea o intervencion mural" />
+        </div>
+
+        <div class="two-cols">
+          <div class="field">
+            <label for="resFecha">Fecha *</label>
+            <input type="date" id="resFecha" required />
+          </div>
+          <div class="field">
+            <label for="resFranja">Franja horaria *</label>
+            <select id="resFranja" required>
+              <option value="Manana (08:00 - 12:00)">Manana (08:00 - 12:00)</option>
+              <option value="Tarde (13:00 - 17:00)">Tarde (13:00 - 17:00)</option>
+              <option value="Noche (17:30 - 20:30)">Noche (17:30 - 20:30)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="two-cols">
+          <div class="field">
+            <label for="resAsistentes">Numero estimado de asistentes *</label>
+            <input type="number" id="resAsistentes" min="1" max="500" required placeholder="Ej. 15" />
+          </div>
+          <div class="field">
+            <label for="resContacto">Canal de contacto (WhatsApp, correo o @red) *</label>
+            <input type="text" id="resContacto" required placeholder="Ej. 300... / correo@ejemplo.org" />
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="justify-content:center;padding:10px 14px;">
+          Confirmar reserva
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Mis Reservas -->
+  <div class="modal-bg" id="modalReservas">
+    <div class="modal-box">
+      <div class="modal-top">
+        <h2>Mis reservas registradas</h2>
+        <button type="button" class="btn btn-outline" id="cerrarModalReservas">Cerrar</button>
+      </div>
+      <div id="contenidoMisReservas"></div>
+      <button type="button" class="btn btn-primary" id="btnExportarReservas" style="width:100%;justify-content:center;margin-top:12px;">
+        Descargar reservas (.json)
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal Registrar Espacio -->
+  <div class="modal-bg" id="modalNuevoEspacio">
+    <div class="modal-box">
+      <div class="modal-top">
+        <h2>Registrar nuevo espacio o muro</h2>
+        <button type="button" class="btn btn-outline" id="cerrarModalNuevo">Cerrar</button>
+      </div>
+      <form id="formNuevoEspacio" class="form-grid">
+        <div class="field">
+          <label for="nuevoNombre">Nombre del espacio o muro *</label>
+          <input type="text" id="nuevoNombre" required placeholder="Ej. Casa Cultural Roma / Muro Calle 38 Sur" />
+        </div>
+        <div class="two-cols">
+          <div class="field">
+            <label for="nuevoLocalidad">Localidad *</label>
+            <input type="text" id="nuevoLocalidad" required placeholder="Ej. Kennedy" />
+          </div>
+          <div class="field">
+            <label for="nuevoDisciplina">Disciplina principal *</label>
+            <select id="nuevoDisciplina" required>
+              <option value="colectivos">Espacios Independientes / Colectivos</option>
+              <option value="grafiti">Graffiti / Muralismo</option>
+              <option value="baile">Danza / Artes del cuerpo</option>
+              <option value="musica">Musica</option>
+              <option value="lectura">Lectura / Bibliotecas</option>
+              <option value="artes_escenicas">Teatro / Escenicas</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label for="nuevoDireccion">Direccion y detalles *</label>
+          <input type="text" id="nuevoDireccion" required placeholder="Ej. Cra 80 # 42-10 Sur · Aforo 30 personas" />
+        </div>
+        <button type="submit" class="btn btn-primary" style="justify-content:center;padding:10px 14px;">
+          Agregar al directorio local
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    /* Isotipos SVG por disciplina */
+    const ISOTIPOS = {
+      grafiti: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path></svg>`,
+      baile: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="13" cy="4" r="2"></circle><path d="M7 21l3-6 2 1 3 5"></path><path d="M6 12l4-2 4 3 4-3"></path></svg>`,
+      musica: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>`,
+      lectura: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>`,
+      artes_escenicas: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 4H6a2 2 0 0 0-2 2v5a8 8 0 0 0 16 0V6a2 2 0 0 0-2-2z"></path><circle cx="9" cy="10" r="1"></circle><circle cx="15" cy="10" r="1"></circle><path d="M9 15c1.2 1.2 4.8 1.2 6 0"></path></svg>`,
+      colectivos: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>`
+    };
+
+    const DISCIPLINAS = [
+      { key: "grafiti", label: "Graffiti / Arte Urbano", color: "#EC4899" },
+      { key: "baile", label: "Danza", color: "#F97316" },
+      { key: "musica", label: "Musica", color: "#06B6D4" },
+      { key: "lectura", label: "Lectura / Literatura", color: "#10B981" },
+      { key: "artes_escenicas", label: "Teatro / Artes Escenicas", color: "#EAB308" },
+      { key: "colectivos", label: "Espacios Independientes", color: "#4F46E5" }
+    ];
+
+    function getDiscInfo(tag) {
+      return DISCIPLINAS.find(d => d.key === tag) || {
+        key: tag || "colectivos",
+        label: (tag || "Espacio").replace(/_/g, " "),
+        color: "#7C3AED"
+      };
+    }
+
+    function getIsotipo(tag) {
+      return ISOTIPOS[tag] || ISOTIPOS.colectivos;
+    }
+
+    const map = L.map("map").setView([4.6486, -74.0836], 11);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "&copy; OpenStreetMap contributors"
+    }).addTo(map);
+
+    const capaLocalidades = L.geoJSON(null, {
+      style: {
+        color: "#7C3AED",
+        weight: 1.5,
+        fillColor: "#EDE9FE",
+        fillOpacity: 0.14
+      },
+      onEachFeature: (feature, layer) => {
+        const nom = feature.properties?.localidad || feature.properties?.LocNombre || "Localidad";
+        layer.bindTooltip(nom, { sticky: true });
+        layer.on("click", () => {
+          document.getElementById("selectLocalidad").value = nom;
+          renderAll();
+        });
+      }
+    }).addTo(map);
+
+    const capaPines = L.layerGroup().addTo(map);
+    const capaHalos = L.layerGroup().addTo(map);
+
+    let espacios = [];
+    let discActiva = "";
+    let seleccionadosIds = [];
+    let reservas = JSON.parse(localStorage.getItem("reservas_bogota_v2") || "[]");
+
+    function parseTags(raw) {
+      if (Array.isArray(raw)) return raw;
+      if (typeof raw === "string") {
+        try {
+          const parsed = JSON.parse(raw.replace(/'/g, '"'));
+          if (Array.isArray(parsed)) return parsed;
+        } catch (_) {}
+        return raw.split(",").map(s => s.trim()).filter(Boolean);
+      }
+      return [];
+    }
+
+    function extraerLatLon(geom) {
+      if (!geom) return null;
+      if (geom.type === "Point" && Array.isArray(geom.coordinates)) {
+        return [geom.coordinates[1], geom.coordinates[0]];
+      }
+      const ring = geom.type === "Polygon" ? geom.coordinates?.[0] : geom.coordinates?.[0]?.[0];
+      if (Array.isArray(ring) && ring.length) {
+        const lat = ring.reduce((acc, c) => acc + c[1], 0) / ring.length;
+        const lon = ring.reduce((acc, c) => acc + c[0], 0) / ring.length;
+        return [lat, lon];
+      }
+      return null;
+    }
+
+    function construirPildoras() {
+      const counts = {};
+      espacios.forEach(e => e.tags.forEach(t => {
+        counts[t] = (counts[t] || 0) + 1;
+      }));
+
+      const cont = document.getElementById("barraDisciplinas");
+      cont.innerHTML = "";
+
+      const btnTodas = document.createElement("button");
+      btnTodas.type = "button";
+      btnTodas.className = "cat-pill" + (discActiva === "" ? " active" : "");
+      btnTodas.style.setProperty("--c", "#7C3AED");
+      btnTodas.innerHTML = `${ISOTIPOS.colectivos} Todas (${espacios.length})`;
+      btnTodas.onclick = () => {
+        discActiva = "";
+        construirPildoras();
+        renderAll();
+      };
+      cont.appendChild(btnTodas);
+
+      DISCIPLINAS.forEach(d => {
+        const n = counts[d.key] || 0;
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "cat-pill" + (discActiva === d.key ? " active" : "");
+        btn.style.setProperty("--c", d.color);
+        btn.innerHTML = `${getIsotipo(d.key)} ${d.label} (${n})`;
+        btn.onclick = () => {
+          discActiva = (discActiva === d.key) ? "" : d.key;
+          construirPildoras();
+          renderAll();
+        };
+        cont.appendChild(btn);
+      });
+    }
+
+    function poblarLocalidades() {
+      const sel = document.getElementById("selectLocalidad");
+      const locs = [...new Set(espacios.map(e => e.localidad).filter(Boolean))].sort((a, b) => a.localeCompare(b, "es"));
+      sel.innerHTML = `<option value="">Todas las localidades (${locs.length})</option>`;
+      locs.forEach(loc => {
+        const op = document.createElement("option");
+        op.value = loc;
+        op.textContent = loc;
+        sel.appendChild(op);
+      });
+    }
+
+    function clasificarAcceso(item) {
+      const txt = `${item.categoria_principal} ${item.detalle_1} ${item.detalle_2} ${item.detalle_3}`.toLowerCase();
+      const flags = [];
+      if (txt.includes("libre") || txt.includes("parque") || txt.includes("publico") || txt.includes("público")) {
+        flags.push("gratuito");
+      }
+      if (txt.includes("muro") || txt.includes("crea") || txt.includes("biblo") || txt.includes("escenario") || txt.includes("salón") || txt.includes("salon")) {
+        flags.push("equipado");
+      }
+      flags.push("reserva");
+      return flags;
+    }
+
+    function filtrarLista() {
+      const q = document.getElementById("inputBuscar").value.trim().toLowerCase();
+      const loc = document.getElementById("selectLocalidad").value;
+      const acceso = document.getElementById("selectAcceso").value;
+
+      return espacios.filter(item => {
+        const okLoc = !loc || item.localidad === loc;
+        const okDisc = !discActiva || item.tags.includes(discActiva);
+        const okAcc = !acceso || item.accesos.includes(acceso);
+        const blob = `${item.nombre} ${item.localidad} ${item.categoria_principal} ${item.detalle_1} ${item.detalle_2} ${item.detalle_3}`.toLowerCase();
+        const okQ = !q || blob.includes(q);
+        return okLoc && okDisc && okAcc && okQ;
+      });
+    }
+
+    function toggleComparar(id) {
+      const idx = seleccionadosIds.indexOf(id);
+      if (idx >= 0) {
+        seleccionadosIds.splice(idx, 1);
+      } else {
+        if (seleccionadosIds.length >= 3) seleccionadosIds.shift();
+        seleccionadosIds.push(id);
+      }
+      renderComparador();
+      renderAll();
+    }
+
+    function renderComparador() {
+      const bar = document.getElementById("barraComparar");
+      const chips = document.getElementById("chipsComparar");
+      if (!seleccionadosIds.length) {
+        bar.classList.remove("visible");
+        return;
+      }
+      bar.classList.add("visible");
+      chips.innerHTML = seleccionadosIds.map(id => {
+        const esp = espacios.find(x => x.id_origen === id);
+        if (!esp) return "";
+        return `<span class="compare-tag" data-focus="${id}">${esp.nombre} (${esp.localidad}) ✕</span>`;
+      }).join("");
+
+      chips.querySelectorAll("[data-focus]").forEach(el => {
+        el.onclick = () => {
+          const esp = espacios.find(x => x.id_origen === el.dataset.focus);
+          if (esp?.latlon) map.setView(esp.latlon, 15);
+        };
+      });
+    }
+
+    function renderAll() {
+      const lista = filtrarLista();
+      document.getElementById("textoConteo").textContent = `${lista.length} espacios disponibles`;
+
+      const grid = document.getElementById("gridTarjetas");
+      grid.innerHTML = "";
+
+      if (!lista.length) {
+        grid.innerHTML = `
+          <div class="info-box serigrafia-bg" style="grid-column:1/-1;text-align:center;padding:24px;">
+            <strong>Sin coincidencias con los filtros actuales</strong>
+            <p style="color:var(--muted);margin:6px 0 0;">Prueba limpiando filtros o eligiendo otra localidad de Bogota.</p>
+          </div>`;
+      }
+
+      lista.slice(0, 80).forEach(item => {
+        const mainTag = item.tags.find(t => DISCIPLINAS.some(d => d.key === t)) || item.tags[0] || "colectivos";
+        const dInfo = getDiscInfo(mainTag);
+        const isSel = seleccionadosIds.includes(item.id_origen);
+
+        const card = document.createElement("article");
+        card.className = "space-item" + (isSel ? " selected-compare" : "");
+        card.innerHTML = `
+          <div>
+            <div class="card-cover serigrafia-bg" style="background-color:${dInfo.color}14;">
+              <span class="badge-cat" style="background:${dInfo.color};">${getIsotipo(mainTag)} ${dInfo.label}</span>
+              <span class="loc-label">${item.localidad}</span>
+            </div>
+            <div class="card-content">
+              <h3>${item.nombre}</h3>
+              <div class="card-sub">${item.categoria_principal}</div>
+              <div class="card-specs">${item.detalle_1 || "Direccion por confirmar"}</div>
+              <div class="card-specs" style="color:var(--muted);">${item.detalle_2 || item.detalle_3 || ""}</div>
+              <div class="access-chips">
+                ${item.accesos.map(a => `<span class="mini-chip">${a === "gratuito" ? "Gratuito" : a === "equipado" ? "Equipado" : "Reserva previa"}</span>`).join("")}
+              </div>
+            </div>
+          </div>
+          <div class="card-actions">
+            <button type="button" class="btn btn-outline" data-cmp="${item.id_origen}" title="Comparar en mapa">
+              ${isSel ? "✓ Halo" : "+ Halo"}
+            </button>
+            <button type="button" class="btn btn-primary" data-abrir="${item.id_origen}">
+              Reservar
+            </button>
+          </div>
+        `;
+
+        card.addEventListener("mouseenter", () => {
+          if (item.latlon) map.panTo(item.latlon, { animate: true });
+        });
+
+        grid.appendChild(card);
+      });
+
+      grid.querySelectorAll("[data-cmp]").forEach(btn => {
+        btn.onclick = (ev) => {
+          ev.stopPropagation();
+          toggleComparar(btn.dataset.cmp);
+        };
+      });
+
+      grid.querySelectorAll("[data-abrir]").forEach(btn => {
+        btn.onclick = (ev) => {
+          ev.stopPropagation();
+          const esp = espacios.find(x => x.id_origen === btn.dataset.abrir);
+          if (esp) {
+            if (esp.latlon) map.setView(esp.latlon, 15);
+            abrirModalEspacio(esp);
+          }
+        };
+      });
+
+      capaPines.clearLayers();
+      capaHalos.clearLayers();
+
+      lista.forEach(item => {
+        if (!item.latlon) return;
+        const mainTag = item.tags.find(t => DISCIPLINAS.some(d => d.key === t)) || item.tags[0] || "colectivos";
+        const dInfo = getDiscInfo(mainTag);
+        const isSel = seleccionadosIds.includes(item.id_origen);
+
+        if (isSel) {
+          L.circleMarker(item.latlon, {
+            radius: 15,
+            fillColor: "#7C3AED",
+            color: "#7C3AED",
+            weight: 2,
+            opacity: 0.9,
+            fillOpacity: 0.24
+          }).addTo(capaHalos);
+        }
+
+        const pin = L.circleMarker(item.latlon, {
+          radius: 7,
+          fillColor: dInfo.color,
+          color: "#FFFFFF",
+          weight: 1.8,
+          opacity: 1,
+          fillOpacity: 0.92
+        });
+
+        pin.bindPopup(`
+          <div style="font-family:'Inter',sans-serif;min-width:210px;">
+            <div style="font-size:11px;font-weight:700;color:${dInfo.color};">${dInfo.label} · ${item.localidad}</div>
+            <strong style="font-size:13px;color:#1A1429;">${item.nombre}</strong>
+            <p style="margin:5px 0 8px;font-size:11.5px;color:#4B5563;">${item.detalle_1 || ""}</p>
+            <button onclick="window.abrirDesdeMapa('${item.id_origen}')" style="background:#7C3AED;color:#fff;border:none;padding:6px 10px;border-radius:8px;cursor:pointer;font-size:11.5px;font-weight:600;">
+              Ver detalle y reservar
+            </button>
+          </div>
+        `);
+        pin.addTo(capaPines);
+      });
+    }
+
+    window.abrirDesdeMapa = (id) => {
+      const esp = espacios.find(x => x.id_origen === id);
+      if (esp) abrirModalEspacio(esp);
+    };
+
+    function abrirModalEspacio(item) {
+      const mainTag = item.tags.find(t => DISCIPLINAS.some(d => d.key === t)) || item.tags[0] || "colectivos";
+      const esMuro = mainTag === "grafiti" || item.nombre.toLowerCase().includes("muro");
+      const queryRuta = encodeURIComponent(`${item.nombre}, ${item.detalle_1}, ${item.localidad}, Bogota`);
+
+      document.getElementById("modalTituloEspacio").textContent = item.nombre;
+      document.getElementById("bloqueInfoPractica").innerHTML = `
+        <div><strong>Localidad:</strong> ${item.localidad} · <strong>Categoria:</strong> ${item.categoria_principal}</div>
+        <div style="margin-top:4px;"><strong>Direccion y detalles:</strong> ${item.detalle_1} ${item.detalle_2 ? "· " + item.detalle_2 : ""}</div>
+        <div style="margin-top:4px;color:var(--muted);">
+          ${esMuro
+            ? "<strong>Ficha de muro / espacio publico:</strong> Verifica acabado, formato y permisos distritales o concertacion previa antes de intervenir."
+            : "<strong>Ficha de espacio cultural / ensayo:</strong> Confirma aforo, piso/equipamiento y disponibilidad del salon en la franja elegida."}
+        </div>
+        <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
+          <a class="btn btn-outline" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${queryRuta}">Abrir en Google Maps</a>
+          <a class="btn btn-outline" target="_blank" rel="noopener" href="https://waze.com/ul?q=${queryRuta}&navigate=yes">Abrir en Waze</a>
+        </div>
+        <div style="margin-top:10px;">
+          <strong style="font-size:0.75rem;">Disponibilidad semanal orientativa:</strong>
+          <div class="week-grid">
+            <div class="slot-free">Lun · Libre</div>
+            <div class="slot-busy">Mar · Ocupado</div>
+            <div class="slot-free">Mie · Libre</div>
+            <div class="slot-free">Jue · Libre</div>
+            <div class="slot-busy">Vie · Ocupado</div>
+            <div class="slot-free">Sab · Libre</div>
+            <div class="slot-free">Dom · Libre</div>
+          </div>
+        </div>
+      `;
+
+      document.getElementById("formReserva").reset();
+      document.getElementById("resIdEspacio").value = item.id_origen;
+      document.getElementById("resNombreEspacio").value = item.nombre;
+      document.getElementById("resLocalidadEspacio").value = item.localidad;
+      document.getElementById("modalEspacio").classList.add("open");
+    }
+
+    function actualizarContadorReservas() {
+      document.getElementById("badgeReservas").textContent = reservas.length;
+    }
+
+    function renderMisReservas() {
+      const box = document.getElementById("contenidoMisReservas");
+      if (!reservas.length) {
+        box.innerHTML = `<p style="color:var(--muted);font-size:0.84rem;">Aun no tienes reservas guardadas.</p>`;
+        return;
+      }
+      box.innerHTML = reservas.map((r, i) => `
+        <div class="info-box" style="margin-bottom:8px;">
+          <strong>#${i + 1} · ${r.solicitante}</strong> (${r.perfil})
+          <div><strong>Espacio:</strong> ${r.espacio_nombre} — ${r.localidad}</div>
+          <div><strong>Disciplinas:</strong> ${r.disciplinas.map(d => getDiscInfo(d).label).join(", ")}</div>
+          <div><strong>Actividad:</strong> ${r.descripcion}</div>
+          <div><strong>Fecha y franja:</strong> ${r.fecha} · ${r.franja} · <strong>Asistentes:</strong> ${r.asistentes}</div>
+          <div><strong>Contacto:</strong> ${r.contacto}</div>
+        </div>
+      `).join("");
+    }
+
+    document.getElementById("formReserva").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const discs = [...document.querySelectorAll("#resDisciplinasChecks input:checked")].map(x => x.value);
+      if (!discs.length) {
+        alert("Selecciona al menos una disciplina o campo artistico.");
+        return;
+      }
+
+      reservas.unshift({
+        id: "res_" + Date.now(),
+        creado: new Date().toISOString(),
+        espacio_id: document.getElementById("resIdEspacio").value,
+        espacio_nombre: document.getElementById("resNombreEspacio").value,
+        localidad: document.getElementById("resLocalidadEspacio").value,
+        solicitante: document.getElementById("resSolicitante").value.trim(),
+        perfil: document.getElementById("resPerfil").value,
+        disciplinas: discs,
+        descripcion: document.getElementById("resDescripcion").value.trim(),
+        fecha: document.getElementById("resFecha").value,
+        franja: document.getElementById("resFranja").value,
+        asistentes: document.getElementById("resAsistentes").value,
+        contacto: document.getElementById("resContacto").value.trim()
+      });
+
+      localStorage.setItem("reservas_bogota_v2", JSON.stringify(reservas));
+      actualizarContadorReservas();
+      document.getElementById("modalEspacio").classList.remove("open");
+      alert("Reserva registrada. Puedes consultarla o descargarla en Mis reservas.");
+    });
+
+    document.getElementById("formNuevoEspacio").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const disc = document.getElementById("nuevoDisciplina").value;
+      const dInfo = getDiscInfo(disc);
+      espacios.unshift({
+        id_origen: "custom_" + Date.now(),
+        nombre: document.getElementById("nuevoNombre").value.trim(),
+        localidad: document.getElementById("nuevoLocalidad").value.trim(),
+        categoria_principal: "Espacio registrado — " + dInfo.label,
+        tags: [disc, "colectivos"],
+        detalle_1: document.getElementById("nuevoDireccion").value.trim(),
+        detalle_2: "Registro comunitario en sesion",
+        detalle_3: "",
+        accesos: ["reserva"],
+        latlon: [4.6486, -74.0836]
+      });
+      poblarLocalidades();
+      construirPildoras();
+      renderAll();
+      document.getElementById("modalNuevoEspacio").classList.remove("open");
+      alert("Espacio agregado a la vista actual.");
+    });
+
+    /* Eventos UI */
+    document.getElementById("cerrarModalEspacio").onclick = () => document.getElementById("modalEspacio").classList.remove("open");
+    document.getElementById("btnMisReservas").onclick = () => {
+      renderMisReservas();
+      document.getElementById("modalReservas").classList.add("open");
+    };
+    document.getElementById("cerrarModalReservas").onclick = () => document.getElementById("modalReservas").classList.remove("open");
+    document.getElementById("btnRegistrarEspacio").onclick = () => document.getElementById("modalNuevoEspacio").classList.add("open");
+    document.getElementById("cerrarModalNuevo").onclick = () => document.getElementById("modalNuevoEspacio").classList.remove("open");
+
+    document.getElementById("btnExportarReservas").onclick = () => {
+      const blob = new Blob([JSON.stringify(reservas, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "reservas_bogota.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+
+    document.getElementById("btnResetFiltros").onclick = () => {
+      document.getElementById("inputBuscar").value = "";
+      document.getElementById("selectLocalidad").value = "";
+      document.getElementById("selectAcceso").value = "";
+      discActiva = "";
+      construirPildoras();
+      renderAll();
+    };
+
+    document.getElementById("inputBuscar").addEventListener("input", renderAll);
+    document.getElementById("selectLocalidad").addEventListener("change", renderAll);
+    document.getElementById("selectAcceso").addEventListener("change", renderAll);
+
+    /* Pestañas en movil */
+    document.getElementById("tabListaMovil").onclick = () => {
+      document.getElementById("columnaLista").classList.remove("mobile-hidden");
+      document.getElementById("columnaMapa").classList.add("mobile-hidden");
+      document.getElementById("tabListaMovil").className = "btn btn-primary";
+      document.getElementById("tabMapaMovil").className = "btn btn-outline";
+    };
+
+    document.getElementById("tabMapaMovil").onclick = () => {
+      document.getElementById("columnaMapa").classList.remove("mobile-hidden");
+      document.getElementById("columnaLista").classList.add("mobile-hidden");
+      document.getElementById("tabMapaMovil").className = "btn btn-primary";
+      document.getElementById("tabListaMovil").className = "btn btn-outline";
+      setTimeout(() => map.invalidateSize(), 150);
+    };
+
+    async function cargarDatos() {
+      actualizarContadorReservas();
+      try {
+        const [rEsp, rLoc] = await Promise.all([
+          fetch("./espacios_bogota.geojson"),
+          fetch("./localidades_bogota.geojson")
+        ]);
+        if (rLoc.ok) {
+          capaLocalidades.addData(await rLoc.json());
+        }
+        const geo = await rEsp.json();
+        espacios = (geo.features || []).map((f, idx) => {
+          const p = f.properties || {};
+          const tags = parseTags(p.tags_filtro);
+          const item = {
+            id_origen: String(p.id_origen ?? `esp_${idx}`),
+            nombre: p.nombre || "Espacio cultural",
+            localidad: p.localidad || "Bogota",
+            categoria_principal: p.categoria_principal || "Espacio Cultural",
+            tags,
+            detalle_1: p.detalle_1 || "",
+            detalle_2: p.detalle_2 || "",
+            detalle_3: p.detalle_3 || "",
+            latlon: extraerLatLon(f.geometry)
+          };
+          item.accesos = clasificarAcceso(item);
+          return item;
+        });
+
+        document.getElementById("textoEstado").textContent = "Datos listos · EPSG:4326";
+        poblarLocalidades();
+        construirPildoras();
+        renderAll();
+      } catch (err) {
+        console.error(err);
+        document.getElementById("textoEstado").textContent = "Revisa los GeoJSON en la raiz";
+      }
+    }
+
+    cargarDatos();
+  </script>
+</body>
+</html>
