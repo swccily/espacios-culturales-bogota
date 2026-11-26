@@ -1413,6 +1413,16 @@
       .week-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     }
 
+    /* Netlify (plan gratuito) inserta un aviso fijo abajo a la derecha (~200 × 64 px): se le deja espacio */
+    :root:has(script[src*="/.netlify/scripts/hud"]) .leaflet-bottom.leaflet-right { right: auto; left: 0; }
+
+    @media (max-width: 980px) {
+      :root:has(script[src*="/.netlify/scripts/hud"]) .mobile-tabs { bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
+      :root:has(script[src*="/.netlify/scripts/hud"]) .map-panel { height: calc(100svh - var(--top-h) - 168px); min-height: 320px; }
+      :root:has(script[src*="/.netlify/scripts/hud"]) .split-layout { padding-bottom: 168px; }
+      :root:has(script[src*="/.netlify/scripts/hud"]) .toast-region { bottom: 156px; }
+    }
+
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after {
         transition-duration: 0.01ms !important;
