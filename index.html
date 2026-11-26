@@ -652,9 +652,9 @@
       return ESTILO_CATEGORIAS[tag]?.label || tag.replace(/_/g, " ");
     }
 
-    const map = L.map("map").setView([4.6486, -74.0836], 11);
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
-      attribution: "&copy; OpenStreetMap &copy; CARTO"
+const map = L.map("map").setView([4.6486, -74.0836], 11);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "&copy; OpenStreetMap contributors"
     }).addTo(map);
 
     const capaLocalidades = L.geoJSON(null, {
