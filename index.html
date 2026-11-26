@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Espacios Culturales y Muros — Bogotá</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    :root {
+      --bg: #f7f4fc;
+      --surface: #ffffff;
+      --surface-soft: #f1ebfc;
+      --ink: #1b1330;
+      --muted: #625682;
+      --purple: #6d28d9;
+      --purple-dark: #4c1d95;
+      --purple-mid: #8b5cf6;
+      --border: #e4daf7;
+      --shadow: 0 6px 20px rgba(45, 19, 97, 0.08);
+      --shadow-hover: 0 12px 28px rgba(45, 19, 97, 0.14);
+
+      /* Colores por categoría */
+      --c-grafiti: #db2777;
+      --c-baile: #ea580c;
+      --c-musica: #2563eb;
+      --c-lectura: #0d9488;
+      --c-artes_escenicas: #9333ea;
+      --c-colectivos: #65a30d;
+      --c-audiovisual: #4f46e5;
+      --c-exposiciones: #c026d3;
+      --c-distrito_creativo: #7c3aed;
+      --c-default: #6d28d9;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Topbar estilo Airbnb en morado */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      background: linear-gradient(110deg, #3b0764 0%, #5b21b6 55%, #7e22ce 100%);
+      color: #fff;
+      padding: 12px 20px;
+      box-shadow: 0 4px 16px rgba(30, 10, 65, 0.18);
+    }
+
+    .topbar-inner {
+      max-width: 1480px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #e9d5ff;
+      box-shadow: 0 0 0 4px rgba(233, 213, 255, 0.25);
+    }
+
+    .brand h1 {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin: 0;
+    }
+
+    .brand span {
+      display: block;
+      font-size: 0.73rem;
+      color: #e9d5ff;
+    }
+
+    /* Barra de búsqueda tipo cápsula */
+    .search-pill {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      background: #fff;
+      color: var(--ink);
+      border-radius: 999px;
+      padding: 5px 8px 5px 16px;
+      gap: 8px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+      flex: 1;
+      max-width: 640px;
+    }
+
+    .search-field {
+      display: flex;
+      flex-direction: column;
+      min-width: 140px;
+      flex: 1;
+    }
+
+    .search-field label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: var(--muted);
+    }
+
+    .search-field input,
+    .search-field select {
+      border: none;
+      background: transparent;
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.82rem;
+      color: var(--ink);
+      padding: 2px 4px 2px 0;
+      width: 100%;
+    }
+
+    .search-field input:focus,
+    .search-field select:focus {
+      outline: none;
+    }
+
+    .divider-v {
+      width: 1px;
+      height: 28px;
+      background: var(--border);
+    }
+
+    .btn {
+      font-family: 'Poppins', sans-serif;
+      font-weight: 600;
+      font-size: 0.8rem;
+      border: none;
+      border-radius: 999px;
+      padding: 9px 15px;
+      cursor: pointer;
+      transition: transform 0.14s ease, background 0.18s ease, box-shadow 0.18s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn:active { transform: scale(0.98); }
+
+    .btn-purple {
+      background: var(--purple);
+      color: #fff;
+    }
+    .btn-purple:hover { background: var(--purple-dark); }
+
+    .btn-ghost-light {
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    .btn-ghost-light:hover { background: rgba(255, 255, 255, 0.25); }
+
+    .btn-soft {
+      background: var(--surface-soft);
+      color: var(--purple-dark);
+    }
+    .btn-soft:hover { background: #e5d8fa; }
+
+    /* Barra horizontal de categorías con colores propios */
+    .category-bar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 20px;
+      position: sticky;
+      top: 64px;
+      z-index: 900;
+    }
+
+    .category-track {
+      max-width: 1480px;
+      margin: 0 auto;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      scrollbar-width: thin;
+    }
+
+    .cat-btn {
+      --cat-color: var(--purple);
+      background: #fff;
+      color: var(--ink);
+      border: 1.5px solid var(--border);
+      border-radius: 999px;
+      padding: 7px 14px;
+      font-size: 0.78rem;
+      font-weight: 500;
+      white-space: nowrap;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.16s ease;
+    }
+
+    .cat-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--cat-color);
+      flex-shrink: 0;
+    }
+
+    .cat-btn:hover {
+      border-color: var(--cat-color);
+      background: #faf7ff;
+    }
+
+    .cat-btn.active {
+      background: var(--cat-color);
+      color: #fff;
+      border-color: var(--cat-color);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    }
+
+    .cat-btn.active .cat-dot {
+      background: #fff;
+    }
+
+    /* Sub-barra de resumen y vista */
+    .subbar {
+      max-width: 1480px;
+      width: 100%;
+      margin: 14px auto 4px;
+      padding: 0 20px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .subbar strong { color: var(--ink); }
+
+    /* Layout principal split tipo Airbnb */
+    .workspace {
+      max-width: 1480px;
+      width: 100%;
+      margin: 0 auto 24px;
+      padding: 8px 20px 0;
+      display: grid;
+      grid-template-columns: 1.2fr 0.85fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+      gap: 16px;
+    }
+
+    .space-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .space-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-hover);
+    }
+
+    .card-banner {
+      height: 8px;
+      background: var(--purple);
+    }
+
+    .card-body {
+      padding: 15px 16px 16px;
+    }
+
+    .card-meta-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .loc-pill {
+      background: var(--surface-soft);
+      color: var(--purple-dark);
+      font-size: 0.71rem;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 999px;
+    }
+
+    .cat-badge {
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 999px;
+      color: #fff;
+    }
+
+    .space-card h3 {
+      margin: 6px 0 4px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 0.96rem;
+      line-height: 1.3;
+      color: var(--ink);
+    }
+
+    .cat-sub {
+      font-size: 0.76rem;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .info-line {
+      font-size: 0.77rem;
+      color: #3a3054;
+      margin: 4px 0;
+      line-height: 1.38;
+    }
+
+    .card-footer {
+      padding: 0 16px 16px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .card-footer .btn {
+      flex: 1;
+      justify-content: center;
+      border-radius: 12px;
+    }
+
+    .map-sticky {
+      position: sticky;
+      top: 124px;
+      height: calc(100vh - 148px);
+      min-height: 440px;
+      border-radius: 20px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      background: #eae3f8;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Modales */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(23, 12, 48, 0.58);
+      backdrop-filter: blur(3px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 2000;
+    }
+
+    .modal-backdrop.open { display: flex; }
+
+    .modal {
+      background: #fff;
+      border-radius: 20px;
+      width: 100%;
+      max-width: 540px;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 22px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+    }
+
+    .modal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 12px;
+      margin-bottom: 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .modal-head h2 {
+      margin: 0;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 1.05rem;
+    }
+
+    .form-stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.76rem;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.84rem;
+      padding: 9px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      color: var(--ink);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .cat-check-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 7px;
+      background: var(--bg);
+      padding: 10px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+
+    .cat-check-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      margin: 0;
+    }
+
+    .reserva-card {
+      border: 1px solid var(--border);
+      background: #faf7ff;
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 10px;
+      font-size: 0.8rem;
+    }
+
+    @media (max-width: 980px) {
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+      .map-sticky {
+        position: relative;
+        top: 0;
+        height: 380px;
+        order: -1;
+      }
+      .divider-v { display: none; }
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-dot"></div>
+        <div>
+          <h1>Espacios Culturales y Muros</h1>
+          <span>Bogotá · Mapa y reservas para artistas y colectivos</span>
+        </div>
+      </div>
+
+      <div class="search-pill">
+        <div class="search-field">
+          <label for="filtroTexto">¿Qué buscas?</label>
+          <input type="text" id="filtroTexto" placeholder="Grafiti, danza, biblioteca, colectivo..." />
+        </div>
+        <div class="divider-v"></div>
+        <div class="search-field">
+          <label for="filtroLocalidad">Localidad</label>
+          <select id="filtroLocalidad">
+            <option value="">Todas las localidades</option>
+          </select>
+        </div>
+        <button type="button" class="btn btn-purple" id="btnLimpiar">Limpiar</button>
+      </div>
+
+      <button type="button" class="btn btn-ghost-light" id="btnVerReservas">
+        Reservas (<span id="contadorReservas">0</span>)
+      </button>
+    </div>
+  </header>
+
+  <nav class="category-bar" aria-label="Filtros por categoría">
+    <div class="category-track" id="barraCategorias"></div>
+  </nav>
+
+  <div class="subbar">
+    <div><strong id="conteoEspacios">Cargando espacios...</strong> en Bogotá</div>
+    <div id="estadoDatos">Conectando con datos...</div>
+  </div>
+
+  <main class="workspace">
+    <section class="cards-grid" id="gridEspacios"></section>
+    <aside class="map-sticky">
+      <div id="map"></div>
+    </aside>
+  </main>
+
+  <!-- Modal de Reserva -->
+  <div class="modal-backdrop" id="modalReserva">
+    <div class="modal">
+      <div class="modal-head">
+        <h2>Reservar espacio</h2>
+        <button type="button" class="btn btn-soft" id="cerrarModalReserva">Cerrar</button>
+      </div>
+      <form id="formReserva" class="form-stack">
+        <div class="form-group">
+          <label>Espacio y localidad</label>
+          <input type="text" id="resEspacioTitulo" readonly />
+          <input type="hidden" id="resEspacioId" />
+          <input type="hidden" id="resEspacioNombre" />
+          <input type="hidden" id="resEspacioLocalidad" />
+        </div>
+
+        <div class="form-group">
+          <label for="resSolicitante">Nombre del artista o colectivo *</label>
+          <input type="text" id="resSolicitante" required placeholder="Ej. Colectivo Sur Mural / Camila Gómez" />
+        </div>
+
+        <div class="form-group">
+          <label>Categoría o categorías de tu práctica *</label>
+          <div class="cat-check-grid" id="resCategoriasBox">
+            <label class="cat-check-item"><input type="checkbox" value="grafiti" /> Grafiti / Muralismo</label>
+            <label class="cat-check-item"><input type="checkbox" value="baile" /> Danza / Baile</label>
+            <label class="cat-check-item"><input type="checkbox" value="musica" /> Música</label>
+            <label class="cat-check-item"><input type="checkbox" value="lectura" /> Lectura / Biblioteca</label>
+            <label class="cat-check-item"><input type="checkbox" value="artes_escenicas" /> Artes Escénicas</label>
+            <label class="cat-check-item"><input type="checkbox" value="colectivos" /> Colectivo / Comunitario</label>
+            <label class="cat-check-item"><input type="checkbox" value="audiovisual" /> Audiovisual / Cine</label>
+            <label class="cat-check-item"><input type="checkbox" value="exposiciones" /> Exposiciones</label>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="form-group">
+            <label for="resFecha">Fecha *</label>
+            <input type="date" id="resFecha" required />
+          </div>
+          <div class="form-group">
+            <label for="resHorario">Horario o disponibilidad *</label>
+            <input type="text" id="resHorario" required placeholder="Ej. 15:00 - 19:00" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="resContacto">Correo, teléfono o red social *</label>
+          <input type="text" id="resContacto" required placeholder="Ej. @colectivo / correo@ejemplo.com" />
+        </div>
+
+        <div class="form-group">
+          <label for="resNotas">Propuesta o necesidades del espacio</label>
+          <textarea id="resNotas" rows="3" placeholder="Cuéntanos brevemente sobre la actividad, ensayo, intervención o taller..."></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-purple" style="justify-content:center;padding:11px 16px;border-radius:12px;">
+          Guardar solicitud de reserva
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal de Reservas -->
+  <div class="modal-backdrop" id="modalReservas">
+    <div class="modal">
+      <div class="modal-head">
+        <h2>Reservas registradas</h2>
+        <button type="button" class="btn btn-soft" id="cerrarModalReservas">Cerrar</button>
+      </div>
+      <div id="listaReservasModal"></div>
+      <button type="button" class="btn btn-purple" id="btnDescargarReservas" style="width:100%;justify-content:center;margin-top:10px;border-radius:12px;">
+        Descargar reservas (.json)
+      </button>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const ESTILO_CATEGORIAS = {
+      grafiti: { label: "Grafiti", color: "#db2777" },
+      baile: { label: "Danza / Baile", color: "#ea580c" },
+      musica: { label: "Música", color: "#2563eb" },
+      lectura: { label: "Lectura", color: "#0d9488" },
+      artes_escenicas: { label: "Artes Escénicas", color: "#9333ea" },
+      colectivos: { label: "Colectivos", color: "#65a30d" },
+      audiovisual: { label: "Audiovisual", color: "#4f46e5" },
+      exposiciones: { label: "Exposiciones", color: "#c026d3" },
+      distrito_creativo: { label: "Distritos Creativos", color: "#7c3aed" },
+      espacios_independientes: { label: "Espacios Independientes", color: "#6d28d9" },
+      museos_patrimonio: { label: "Museos y Patrimonio", color: "#b45309" },
+      espacios_publicos: { label: "Espacios Públicos", color: "#0284c7" },
+      escenarios: { label: "Escenarios", color: "#be123c" },
+      centros_culturales: { label: "Centros Culturales", color: "#5b21b6" },
+      formacion: { label: "Formación", color: "#0f766e" },
+      bibliotecas: { label: "Bibliotecas", color: "#0e7490" },
+      crea: { label: "CREA", color: "#7e22ce" },
+      locaciones: { label: "Locaciones", color: "#4338ca" },
+      cine: { label: "Cine", color: "#3730a3" },
+      medios: { label: "Medios", color: "#0369a1" },
+      medios_comunitarios: { label: "Medios Comunitarios", color: "#15803d" }
+    };
+
+    function colorDeTag(tag) {
+      return ESTILO_CATEGORIAS[tag]?.color || "#6d28d9";
+    }
+
+    function nombreDeTag(tag) {
+      return ESTILO_CATEGORIAS[tag]?.label || tag.replace(/_/g, " ");
+    }
+
+    const map = L.map("map").setView([4.6486, -74.0836], 11);
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+      attribution: "&copy; OpenStreetMap &copy; CARTO"
+    }).addTo(map);
+
+    const capaLocalidades = L.geoJSON(null, {
+      style: {
+        color: "#5b21b6",
+        weight: 1.4,
+        fillColor: "#8b5cf6",
+        fillOpacity: 0.05
+      },
+      onEachFeature: (feature, layer) => {
+        const locName = feature.properties?.localidad || feature.properties?.LocNombre || "Localidad";
+        layer.bindTooltip(locName, { sticky: true });
+        layer.on("click", () => {
+          document.getElementById("filtroLocalidad").value = locName;
+          actualizarVista();
+        });
+      }
+    }).addTo(map);
+
+    const capaMarcadores = L.layerGroup().addTo(map);
+
+    let espacios = [];
+    let catActiva = "";
+    let reservas = JSON.parse(localStorage.getItem("reservas_espacios_bogota") || "[]");
+
+    function parseTags(raw) {
+      if (Array.isArray(raw)) return raw;
+      if (typeof raw === "string") {
+        try {
+          const arr = JSON.parse(raw.replace(/'/g, '"'));
+          if (Array.isArray(arr)) return arr;
+        } catch (_) {}
+        return raw.split(",").map(s => s.trim()).filter(Boolean);
+      }
+      return [];
+    }
+
+    function extraerLatLon(geom) {
+      if (!geom) return null;
+      if (geom.type === "Point" && Array.isArray(geom.coordinates)) {
+        return [geom.coordinates[1], geom.coordinates[0]];
+      }
+      const anillo = geom.type === "Polygon" ? geom.coordinates?.[0] : geom.coordinates?.[0]?.[0];
+      if (Array.isArray(anillo) && anillo.length) {
+        const lat = anillo.reduce((s, c) => s + c[1], 0) / anillo.length;
+        const lon = anillo.reduce((s, c) => s + c[0], 0) / anillo.length;
+        return [lat, lon];
+      }
+      return null;
+    }
+
+    function construirBarraCategorias() {
+      const counts = {};
+      espacios.forEach(e => e.tags.forEach(t => {
+        counts[t] = (counts[t] || 0) + 1;
+      }));
+
+      const track = document.getElementById("barraCategorias");
+      track.innerHTML = "";
+
+      const allBtn = document.createElement("button");
+      allBtn.type = "button";
+      allBtn.className = "cat-btn" + (catActiva === "" ? " active" : "");
+      allBtn.style.setProperty("--cat-color", "#5b21b6");
+      allBtn.innerHTML = `<span class="cat-dot"></span>Todas (${espacios.length})`;
+      allBtn.onclick = () => {
+        catActiva = "";
+        construirBarraCategorias();
+        actualizarVista();
+      };
+      track.appendChild(allBtn);
+
+      Object.entries(counts)
+        .sort((a, b) => b[1] - a[1])
+        .forEach(([tag, total]) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "cat-btn" + (catActiva === tag ? " active" : "");
+          btn.style.setProperty("--cat-color", colorDeTag(tag));
+          btn.innerHTML = `<span class="cat-dot"></span>${nombreDeTag(tag)} (${total})`;
+          btn.onclick = () => {
+            catActiva = (catActiva === tag) ? "" : tag;
+            construirBarraCategorias();
+            actualizarVista();
+          };
+          track.appendChild(btn);
+        });
+    }
+
+    function poblarLocalidades() {
+      const sel = document.getElementById("filtroLocalidad");
+      const locs = [...new Set(espacios.map(e => e.localidad).filter(Boolean))].sort((a, b) => a.localeCompare(b, "es"));
+      sel.innerHTML = `<option value="">Todas las localidades</option>`;
+      locs.forEach(l => {
+        const op = document.createElement("option");
+        op.value = l;
+        op.textContent = l;
+        sel.appendChild(op);
+      });
+    }
+
+    function filtrarEspacios() {
+      const q = document.getElementById("filtroTexto").value.trim().toLowerCase();
+      const loc = document.getElementById("filtroLocalidad").value;
+
+      return espacios.filter(item => {
+        const okLoc = !loc || item.localidad === loc;
+        const okCat = !catActiva || item.tags.includes(catActiva);
+        const texto = `${item.nombre} ${item.localidad} ${item.categoria_principal} ${item.detalle_1} ${item.detalle_2} ${item.detalle_3} ${item.tags.map(nombreDeTag).join(" ")}`.toLowerCase();
+        const okQ = !q || texto.includes(q);
+        return okLoc && okCat && okQ;
+      });
+    }
+
+    function actualizarVista() {
+      const lista = filtrarEspacios();
+      document.getElementById("conteoEspacios").textContent = `${lista.length} espacios disponibles`;
+
+      const grid = document.getElementById("gridEspacios");
+      grid.innerHTML = "";
+
+      if (!lista.length) {
+        grid.innerHTML = `<p style="color:var(--muted);">No encontramos espacios con ese filtro. Prueba limpiando o cambiando de localidad.</p>`;
+      }
+
+      lista.slice(0, 90).forEach(item => {
+        const tagPrincipal = item.tags[0] || "espacios_independientes";
+        const colorCat = colorDeTag(tagPrincipal);
+
+        const card = document.createElement("article");
+        card.className = "space-card";
+        card.innerHTML = `
+          <div>
+            <div class="card-banner" style="background:${colorCat};"></div>
+            <div class="card-body">
+              <div class="card-meta-top">
+                <span class="loc-pill">${item.localidad}</span>
+                <span class="cat-badge" style="background:${colorCat};">${nombreDeTag(tagPrincipal)}</span>
+              </div>
+              <h3>${item.nombre}</h3>
+              <div class="cat-sub">${item.categoria_principal}</div>
+              <div class="info-line">${item.detalle_1}</div>
+              <div class="info-line">${item.detalle_2}</div>
+            </div>
+          </div>
+          <div class="card-footer">
+            <button type="button" class="btn btn-soft" data-mapa="${item.id_origen}">Mapa</button>
+            <button type="button" class="btn btn-purple" data-reserva="${item.id_origen}">Reservar</button>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+
+      grid.querySelectorAll("[data-mapa]").forEach(b => {
+        b.onclick = () => {
+          const target = espacios.find(x => x.id_origen === b.dataset.mapa);
+          if (target?.latlon) {
+            map.setView(target.latlon, 15);
+            if (window.innerWidth <= 980) {
+              document.querySelector(".map-sticky").scrollIntoView({ behavior: "smooth" });
+            }
+          }
+        };
+      });
+
+      grid.querySelectorAll("[data-reserva]").forEach(b => {
+        b.onclick = () => {
+          const target = espacios.find(x => x.id_origen === b.dataset.reserva);
+          if (target) abrirReserva(target);
+        };
+      });
+
+      capaMarcadores.clearLayers();
+      lista.forEach(item => {
+        if (!item.latlon) return;
+        const c = colorDeTag(item.tags[0] || "espacios_independientes");
+        const m = L.circleMarker(item.latlon, {
+          radius: 6.5,
+          fillColor: c,
+          color: "#ffffff",
+          weight: 1.5,
+          fillOpacity: 0.9
+        });
+        m.bindPopup(`
+          <div style="font-family:'Poppins',sans-serif;min-width:200px;">
+            <strong style="font-size:13px;">${item.nombre}</strong><br/>
+            <span style="font-size:11.5px;color:#5b21b6;font-weight:600;">${item.localidad}</span>
+            <p style="margin:6px 0;font-size:11.5px;color:#444;">${item.detalle_1}</p>
+            <button onclick="window.abrirReservaDesdeMapa('${item.id_origen}')" style="background:#6d28d9;color:#fff;border:none;padding:6px 11px;border-radius:8px;cursor:pointer;font-size:11.5px;font-weight:600;">
+              Reservar espacio
+            </button>
+          </div>
+        `);
+        m.addTo(capaMarcadores);
+      });
+    }
+
+    window.abrirReservaDesdeMapa = (id) => {
+      const found = espacios.find(x => x.id_origen === id);
+      if (found) abrirReserva(found);
+    };
+
+    function abrirReserva(item) {
+      document.getElementById("formReserva").reset();
+      document.getElementById("resEspacioId").value = item.id_origen;
+      document.getElementById("resEspacioNombre").value = item.nombre;
+      document.getElementById("resEspacioLocalidad").value = item.localidad;
+      document.getElementById("resEspacioTitulo").value = `${item.nombre} (${item.localidad})`;
+      document.getElementById("modalReserva").classList.add("open");
+    }
+
+    function actualizarBadgeReservas() {
+      document.getElementById("contadorReservas").textContent = reservas.length;
+    }
+
+    function pintarReservas() {
+      const box = document.getElementById("listaReservasModal");
+      if (!reservas.length) {
+        box.innerHTML = `<p style="color:var(--muted);font-size:0.84rem;">Todavía no hay reservas guardadas en este navegador.</p>`;
+        return;
+      }
+      box.innerHTML = reservas.map((r, i) => `
+        <div class="reserva-card">
+          <strong>#${i + 1} · ${r.solicitante}</strong>
+          <div><strong>Espacio:</strong> ${r.espacio_nombre} (${r.localidad})</div>
+          <div><strong>Categorías:</strong> ${r.categorias.map(nombreDeTag).join(", ")}</div>
+          <div><strong>Fecha y horario:</strong> ${r.fecha} · ${r.horario}</div>
+          <div><strong>Contacto:</strong> ${r.contacto}</div>
+          ${r.notas ? `<div><strong>Propuesta:</strong> ${r.notas}</div>` : ""}
+        </div>
+      `).join("");
+    }
+
+    document.getElementById("formReserva").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const cats = [...document.querySelectorAll("#resCategoriasBox input:checked")].map(x => x.value);
+      if (!cats.length) {
+        alert("Elige al menos una categoría para tu colectivo o práctica.");
+        return;
+      }
+      reservas.unshift({
+        id_reserva: "res_" + Date.now(),
+        creado_en: new Date().toISOString(),
+        espacio_id: document.getElementById("resEspacioId").value,
+        espacio_nombre: document.getElementById("resEspacioNombre").value,
+        localidad: document.getElementById("resEspacioLocalidad").value,
+        solicitante: document.getElementById("resSolicitante").value.trim(),
+        categorias: cats,
+        fecha: document.getElementById("resFecha").value,
+        horario: document.getElementById("resHorario").value.trim(),
+        contacto: document.getElementById("resContacto").value.trim(),
+        notas: document.getElementById("resNotas").value.trim()
+      });
+      localStorage.setItem("reservas_espacios_bogota", JSON.stringify(reservas));
+      actualizarBadgeReservas();
+      document.getElementById("modalReserva").classList.remove("open");
+      alert("¡Reserva registrada! Puedes verla o descargarla en el botón Reservas.");
+    });
+
+    document.getElementById("cerrarModalReserva").onclick = () => document.getElementById("modalReserva").classList.remove("open");
+    document.getElementById("btnVerReservas").onclick = () => {
+      pintarReservas();
+      document.getElementById("modalReservas").classList.add("open");
+    };
+    document.getElementById("cerrarModalReservas").onclick = () => document.getElementById("modalReservas").classList.remove("open");
+
+    document.getElementById("btnDescargarReservas").onclick = () => {
+      const blob = new Blob([JSON.stringify(reservas, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "reservas_espacios_bogota.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+
+    document.getElementById("btnLimpiar").onclick = () => {
+      document.getElementById("filtroTexto").value = "";
+      document.getElementById("filtroLocalidad").value = "";
+      catActiva = "";
+      construirBarraCategorias();
+      actualizarVista();
+    };
+
+    document.getElementById("filtroTexto").addEventListener("input", actualizarVista);
+    document.getElementById("filtroLocalidad").addEventListener("change", actualizarVista);
+
+    async function init() {
+      actualizarBadgeReservas();
+      try {
+        const [rEsp, rLoc] = await Promise.all([
+          fetch("./espacios_bogota.geojson"),
+          fetch("./localidades_bogota.geojson")
+        ]);
+        if (rLoc.ok) {
+          capaLocalidades.addData(await rLoc.json());
+        }
+        const data = await rEsp.json();
+        espacios = (data.features || []).map((f, idx) => {
+          const p = f.properties || {};
+          return {
+            id_origen: String(p.id_origen ?? `esp_${idx}`),
+            nombre: p.nombre || "Espacio cultural",
+            localidad: p.localidad || "Bogotá",
+            categoria_principal: p.categoria_principal || "Espacio Cultural",
+            tags: parseTags(p.tags_filtro),
+            detalle_1: p.detalle_1 || "",
+            detalle_2: p.detalle_2 || "",
+            detalle_3: p.detalle_3 || "",
+            latlon: extraerLatLon(f.geometry)
+          };
+        });
+        document.getElementById("estadoDatos").textContent = "Actualizado · EPSG:4326";
+        poblarLocalidades();
+        construirBarraCategorias();
+        actualizarVista();
+      } catch (err) {
+        console.error(err);
+        document.getElementById("estadoDatos").textContent = "Revisa los archivos GeoJSON";
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
