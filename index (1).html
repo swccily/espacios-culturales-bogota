@@ -1203,6 +1203,62 @@
     /* ==========================================================
        6. Responsive
        ========================================================== */
+
+    /* Escritorio: la página ocupa la ventana, la lista tiene su propio scroll y el mapa queda fijo */
+    @media (min-width: 981px) and (min-height: 560px) {
+      body {
+        height: 100vh;
+        height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      .app-top,
+      .compare-bar { flex-shrink: 0; }
+
+      .split-layout {
+        flex: 1;
+        min-height: 0;
+        width: 100%;
+        grid-template-rows: minmax(0, 1fr);
+        align-items: stretch;
+        padding-bottom: var(--sp-5);
+      }
+
+      #columnaLista {
+        min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        margin: 0 calc(var(--sp-3) * -1) 0 -2px;
+        padding: 0 var(--sp-2) 2px 2px;
+        scrollbar-width: thin;
+        scrollbar-color: var(--border-strong) transparent;
+        scrollbar-gutter: stable;
+      }
+
+      #columnaLista::-webkit-scrollbar { width: 8px; }
+      #columnaLista::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: var(--r-full); }
+
+      /* Conteo y filtros activos siempre visibles sobre la lista */
+      .results-head {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: var(--bg);
+        margin: 0 -2px;
+        padding: 0 2px 2px;
+      }
+
+      #columnaMapa { min-height: 0; }
+
+      .map-panel {
+        position: relative;
+        top: 0;
+        height: 100%;
+        min-height: 0;
+      }
+    }
     @media (max-width: 1279px) {
       .cards-2col { grid-template-columns: 1fr; }
     }
@@ -1461,11 +1517,13 @@
     <h1 class="sr-only">Espacios culturales y muros de Bogotá</h1>
 
     <section id="columnaLista" aria-label="Resultados">
-      <div class="results-meta">
-        <p class="results-count" id="textoConteo" tabindex="-1" aria-live="polite">Cargando espacios...</p>
-        <span class="results-status" id="textoEstado">EPSG:4326</span>
+      <div class="results-head">
+        <div class="results-meta">
+          <p class="results-count" id="textoConteo" tabindex="-1" aria-live="polite">Cargando espacios...</p>
+          <span class="results-status" id="textoEstado">EPSG:4326</span>
+        </div>
+        <div class="active-filters" id="filtrosActivos" hidden></div>
       </div>
-      <div class="active-filters" id="filtrosActivos" hidden></div>
       <div class="cards-2col" id="gridTarjetas">
         <article class="space-item skeleton" aria-hidden="true"><i></i><i></i><i></i><i></i></article>
         <article class="space-item skeleton" aria-hidden="true"><i></i><i></i><i></i><i></i></article>
@@ -1842,8 +1900,10 @@
     const bloqueSuperior = document.getElementById("appTop");
     new ResizeObserver(() => {
       document.documentElement.style.setProperty("--top-h", bloqueSuperior.offsetHeight + "px");
-      map.invalidateSize();
     }).observe(bloqueSuperior);
+
+    // El mapa se reajusta cuando cambia el alto de su panel (ventana, encabezado o barra de Halo)
+    new ResizeObserver(() => map.invalidateSize()).observe(document.querySelector(".map-panel"));
 
     function construirLeyenda() {
       document.getElementById("leyendaMapa").innerHTML =
@@ -1858,6 +1918,7 @@
     let espacios = [];
     let discActiva = "";
     let seleccionadosIds = [];
+    let ultimaFirmaFiltros = "";
     let reservas = JSON.parse(localStorage.getItem("reservas_bogota_v2") || "[]");
 
     function parseTags(raw) {
@@ -2064,6 +2125,13 @@
     function renderAll() {
       const lista = filtrarLista();
       renderFiltrosActivos();
+
+      // Si cambiaron los filtros, la lista vuelve al inicio
+      const firmaFiltros = [document.getElementById("inputBuscar").value, document.getElementById("selectLocalidad").value, document.getElementById("selectAcceso").value, discActiva].join("|");
+      if (firmaFiltros !== ultimaFirmaFiltros) {
+        ultimaFirmaFiltros = firmaFiltros;
+        document.getElementById("columnaLista").scrollTop = 0;
+      }
       document.getElementById("textoConteo").textContent = `${lista.length} espacios disponibles`;
 
       const grid = document.getElementById("gridTarjetas");
